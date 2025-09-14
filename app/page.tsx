@@ -5,7 +5,7 @@ import React, { useState } from "react";
 // ---------------------
 // Chain → Token mapping
 // ---------------------
-const CHAIN_TOKENS = {
+const CHAIN_TOKENS: Record<string, string[]> = {
   Ethereum: ["ETH", "USDT", "DAI"],
   Solana: ["SOL", "USDC"],
   Sui: ["SUI", "USDC"],
@@ -16,7 +16,7 @@ const CHAIN_TOKENS = {
 // ---------------------
 // Harga kasar (USD)
 // ---------------------
-const PRICES = {
+const PRICES: Record<string, number> = {
   USD: 1,
   USDT: 1,
   DAI: 1,
@@ -31,7 +31,7 @@ const PRICES = {
 // ---------------------
 // Balance awal per chain
 // ---------------------
-const INITIAL_BALANCES = {
+const INITIAL_BALANCES: Record<string, Record<string, number>> = {
   Ethereum: { ETH: 10, USDT: 100000, DAI: 100000 },
   Solana: { SOL: 100, USDC: 100000 },
   Sui: { SUI: 1000, USDC: 100000 },
@@ -41,21 +41,35 @@ const INITIAL_BALANCES = {
 
 const uid = (p = "id") => `${p}_${Math.random().toString(36).slice(2, 9)}`;
 
+type Intent = {
+  id: string;
+  fromChain: string;
+  toChain: string;
+  fromToken: string;
+  toToken: string;
+  amount: number;
+  result: number;
+  usd: number;
+};
+
 export default function Home() {
   const [fromChain, setFromChain] = useState("Ethereum");
   const [toChain, setToChain] = useState("Solana");
   const [fromToken, setFromToken] = useState("ETH");
   const [toToken, setToToken] = useState("SOL");
-  const [amount, setAmount] = useState("");
-  const [balances, setBalances] = useState(JSON.parse(JSON.stringify(INITIAL_BALANCES)));
-  const [history, setHistory] = useState([]);
+  const [amount, setAmount] = useState<string>("");
+  const [balances, setBalances] = useState<Record<string, Record<string, number>>>(
+    JSON.parse(JSON.stringify(INITIAL_BALANCES))
+  );
+  const [history, setHistory] = useState<Intent[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   // Submit intent
   const submitIntent = () => {
-    if (!amount || isNaN(amount) || amount <= 0) return;
     const amt = parseFloat(amount);
+
+    if (!amount || isNaN(amt) || amt <= 0) return;
 
     // cek balance cukup
     if (!balances[fromChain] || balances[fromChain][fromToken] < amt) {
@@ -77,12 +91,13 @@ export default function Home() {
       newBalances[toChain] = { ...newBalances[toChain] };
 
       newBalances[fromChain][fromToken] -= amt;
-      newBalances[toChain][toToken] = (newBalances[toChain][toToken] || 0) + converted;
+      newBalances[toChain][toToken] =
+        (newBalances[toChain][toToken] || 0) + converted;
 
       setBalances(newBalances);
 
       // simpan history
-      const newIntent = {
+      const newIntent: Intent = {
         id: uid("intent"),
         fromChain,
         toChain,
@@ -104,12 +119,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center p-6 relative">
-      <h1 className="text-2xl font-bold mb-6">Anoma Multichain Intents</h1>
+      <h1 className="text-2xl font-bold mb-6">Anoma-like Multichain Demo</h1>
 
       {/* Form */}
       <div className="bg-white text-black p-6 rounded-2xl shadow-md w-full max-w-md">
         <h2 className="text-lg font-semibold mb-4">Create Intent</h2>
         <div className="space-y-3">
+          {/* From Chain */}
           <div>
             <label className="block text-sm mb-1">From Chain</label>
             <select
@@ -126,6 +142,7 @@ export default function Home() {
             </select>
           </div>
 
+          {/* From Token */}
           <div>
             <label className="block text-sm mb-1">From Token</label>
             <select
@@ -139,6 +156,7 @@ export default function Home() {
             </select>
           </div>
 
+          {/* To Chain */}
           <div>
             <label className="block text-sm mb-1">To Chain</label>
             <select
@@ -155,6 +173,7 @@ export default function Home() {
             </select>
           </div>
 
+          {/* To Token */}
           <div>
             <label className="block text-sm mb-1">To Token</label>
             <select
@@ -168,6 +187,7 @@ export default function Home() {
             </select>
           </div>
 
+          {/* Amount */}
           <div>
             <label className="block text-sm mb-1">Amount</label>
             <input
@@ -175,65 +195,73 @@ export default function Home() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full border p-2 rounded"
-              placeholder="0.00"
+              placeholder="Enter amount"
             />
           </div>
 
+          {/* Submit */}
           <button
             onClick={submitIntent}
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
+            className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
           >
-            {loading ? "Submitting..." : "Submit Intent"}
+            {loading ? "Processing..." : "Submit Intent"}
           </button>
+
+          {submitted && (
+            <div className="text-green-600 text-sm mt-2">Intent submitted!</div>
+          )}
         </div>
       </div>
 
       {/* Balances */}
       <div className="mt-8 w-full max-w-2xl">
-        <h2 className="text-lg font-semibold mb-2">Balances</h2>
-        <div className="grid grid-cols-2 gap-4">
-          {Object.keys(balances).map((chain) => (
-            <div key={chain} className="bg-white text-black p-3 rounded-lg shadow">
-              <strong>{chain}</strong>
-              <ul className="text-sm mt-1">
-                {Object.entries(balances[chain]).map(([token, bal]) => (
-                  <li key={token}>
-                    {token}: {bal.toFixed(4)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <h2 className="text-xl font-semibold mb-3">Balances</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {Object.keys(balances).map((chain) =>
+            Object.keys(balances[chain]).map((token) => (
+              <div
+                key={`${chain}-${token}`}
+                className="bg-gray-900 p-3 rounded-lg text-center"
+              >
+                <div className="text-sm text-gray-400">{chain}</div>
+                <div className="font-bold">
+                  {balances[chain][token].toFixed(4)} {token}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
       {/* History */}
       <div className="mt-8 w-full max-w-2xl">
-        <h2 className="text-lg font-semibold mb-2">Transaction History</h2>
+        <h2 className="text-xl font-semibold mb-3">History</h2>
+        {history.length === 0 && (
+          <div className="text-gray-500">No transactions yet</div>
+        )}
         <div className="space-y-2">
           {history.map((i) => (
-            <div key={i.id} className="bg-white text-black p-3 rounded-lg shadow">
+            <div
+              key={i.id}
+              className="bg-gray-800 p-3 rounded-lg flex justify-between items-center"
+            >
               <div>
-                Sent <strong>{i.amount} {i.fromToken}</strong> from <strong>{i.fromChain}</strong>
-                <br />
-                Received <strong>{i.result.toFixed(4)} {i.toToken}</strong> on <strong>{i.toChain}</strong>
-              </div>
-              <div className="text-xs text-gray-600">
-                (≈ USD {i.usd.toFixed(2)})
+                <div className="text-sm">
+                  {i.amount} {i.fromToken} on {i.fromChain} →{" "}
+                  <strong>
+                    {i.result.toFixed(4)} {i.toToken}
+                  </strong>{" "}
+                  on <strong>{i.toChain}</strong>
+                </div>
+                <div className="text-xs text-gray-400">
+                  (≈ USD {i.usd.toFixed(2)})
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Progress Indicator */}
-      {(loading || submitted) && (
-        <div className="absolute bottom-4 left-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow">
-          {loading && "Submitting..."}
-          {submitted && "✅ Intent Done / Submitted"}
-        </div>
-      )}
     </div>
   );
 }
