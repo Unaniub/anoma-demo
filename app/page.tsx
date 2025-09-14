@@ -6,7 +6,7 @@ import React, { useState } from "react";
 // Chain → Token mapping
 // ---------------------
 const CHAIN_TOKENS: Record<string, string[]> = {
-  Ethereum: ["ETH", "USDT", "DAI"],
+  Ethereum: ["ETH", "USDT", "DAI", "XAN"], // <-- XAN ditambahkan
   Solana: ["SOL", "USDC"],
   Sui: ["SUI", "USDC"],
   TRON: ["TRX", "USDT"],
@@ -19,20 +19,21 @@ const CHAIN_TOKENS: Record<string, string[]> = {
 const PRICES: Record<string, number> = {
   USD: 1,
   USDT: 1,
+  USDC: 1,
   DAI: 1,
   ETH: 3000,
   BTC: 60000,
   SOL: 150,
   SUI: 1,
   TRX: 0.1,
-  USDC: 1,
+  XAN: 1, // <-- XAN 1:1 dengan USDC
 };
 
 // ---------------------
 // Balance awal per chain
 // ---------------------
 const INITIAL_BALANCES: Record<string, Record<string, number>> = {
-  Ethereum: { ETH: 10, USDT: 100000, DAI: 100000 },
+  Ethereum: { ETH: 10, USDT: 100000, DAI: 100000, XAN: 100000 }, // <-- saldo XAN awal
   Solana: { SOL: 100, USDC: 100000 },
   Sui: { SUI: 1000, USDC: 100000 },
   TRON: { TRX: 100000, USDT: 100000 },
@@ -72,7 +73,7 @@ export default function Home() {
     if (!amount || isNaN(amt) || amt <= 0) return;
 
     // cek balance cukup
-    if (!balances[fromChain] || balances[fromChain][fromToken] < amt) {
+    if (!balances[fromChain] || (balances[fromChain][fromToken] ?? 0) < amt) {
       alert("Insufficient balance!");
       return;
     }
@@ -82,17 +83,16 @@ export default function Home() {
 
     setTimeout(() => {
       // hitung konversi
-      const usdValue = amt * (PRICES[fromToken] || 1);
-      const converted = usdValue / (PRICES[toToken] || 1);
+      const usdValue = amt * (PRICES[fromToken] ?? 1);
+      const converted = usdValue / (PRICES[toToken] ?? 1);
 
-      // update balances
+      // update balances (mutasi immutably)
       const newBalances = { ...balances };
       newBalances[fromChain] = { ...newBalances[fromChain] };
       newBalances[toChain] = { ...newBalances[toChain] };
 
-      newBalances[fromChain][fromToken] -= amt;
-      newBalances[toChain][toToken] =
-        (newBalances[toChain][toToken] || 0) + converted;
+      newBalances[fromChain][fromToken] = (newBalances[fromChain][fromToken] ?? 0) - amt;
+      newBalances[toChain][toToken] = (newBalances[toChain][toToken] ?? 0) + converted;
 
       setBalances(newBalances);
 
@@ -119,7 +119,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center p-6 relative">
-      <h1 className="text-2xl font-bold mb-6">Anoma-like Multichain Demo</h1>
+      {/* --- EDIT THIS TITLE to change homepage text --- */}
+      <h1 className="text-2xl font-bold mb-6">Anoma Multichain Intents</h1>
 
       {/* Form */}
       <div className="bg-white text-black p-6 rounded-2xl shadow-md w-full max-w-md">
@@ -237,9 +238,7 @@ export default function Home() {
       {/* History */}
       <div className="mt-8 w-full max-w-2xl">
         <h2 className="text-xl font-semibold mb-3">History</h2>
-        {history.length === 0 && (
-          <div className="text-gray-500">No transactions yet</div>
-        )}
+        {history.length === 0 && <div className="text-gray-500">No transactions yet</div>}
         <div className="space-y-2">
           {history.map((i) => (
             <div
