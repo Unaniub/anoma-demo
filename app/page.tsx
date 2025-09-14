@@ -227,7 +227,7 @@ export default function Home() {
               >
                 <div className="text-sm text-gray-400">{chain}</div>
                 <div className="font-bold">
-                  {balances[chain][token].toFixed(4)} {token}
+                  {parseFloat(balances[chain][token].toFixed(4)).toString()}
                 </div>
               </div>
             ))
@@ -249,7 +249,7 @@ export default function Home() {
                 <div className="text-sm">
                   {i.amount} {i.fromToken} on {i.fromChain} →{" "}
                   <strong>
-                    {i.result.toFixed(4)} {i.toToken}
+                    {parseFloat(i.result.toFixed(4)).toString()} {i.toToken}
                   </strong>{" "}
                   on <strong>{i.toChain}</strong>
                 </div>
